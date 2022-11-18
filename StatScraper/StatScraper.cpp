@@ -103,6 +103,10 @@ void StatScraper::onLoad()
 		[this](std::string eventname) {
 			replayEnded();
 		});
+	gameWrapper->HookEventWithCallerPost<CarWrapper>("Function TAGame.Car_TA.EventHitBall",
+		[this](CarWrapper carWrapper, void* params, std::string eventname) {
+			onHitBall(carWrapper, params);
+		});
 
 }
 

@@ -23,6 +23,7 @@ class StatScraper: public BakkesMod::Plugin::BakkesModPlugin
 	//void onUnload() override; // Uncomment and implement if you need a unload method
 
 	void onStatTickerMessage(void*);
+	void onHitBall(CarWrapper, void*);
 	void startRound();
 	void gameTimeTick();
 	void matchEnded();
