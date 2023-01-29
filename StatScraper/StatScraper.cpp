@@ -272,7 +272,7 @@ void StatScraper::replayEnded() {
 
 void StatScraper::sendServerEvent(json body) {
 	CurlRequest req;
-	req.url = "http://imac:8822/bakkes";
+	req.url = "http://goshdarnedserver:8822/bakkes";
 	req.body = body.dump();
 
 	HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result)
@@ -310,8 +310,8 @@ void StatScraper::onStatTickerMessage(void* params) {
 	PriWrapper receiver = PriWrapper(pStruct->Receiver);
 	PriWrapper victim = PriWrapper(pStruct->Victim);
 	StatEventWrapper statEvent = StatEventWrapper(pStruct->StatEvent);
-	if (!receiver) { LOG("Null reciever PRI"); return; }
-	this->sendStatEvent("stat_ticker", receiver, statEvent);
+	if (!receiver) { LOG("Null receiver PRI"); return; }
+	this->sendPriStats("stat_ticker", receiver, statEvent.GetEventName());
 }
 
 // ---------------------------  OnlineGame methods --------------------
@@ -323,7 +323,7 @@ void OnlineGame::gameKickoff() {
 	ArrayWrapper<PriWrapper> priList = game.GetPRIs();
 	int playerCount = priList.Count();
 	CurlRequest req;
-	req.url = "http://imac:8822/bakkes";
+	req.url = "http://goshdarnedserver:8822/bakkes";
 	json body;
 	body["event"] = "OnlineGame::gameKickoff";
 	body["player_count"] = playerCount;
