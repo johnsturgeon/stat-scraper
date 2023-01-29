@@ -40,7 +40,6 @@ class StatScraper: public BakkesMod::Plugin::BakkesModPlugin
 	void sendLog(std::string);
 	void onStatTickerMessage(void*);
 	void startRound();
-	void gameTimeTick();
 	void matchEnded();
 	void gameDestroyed();
 	void replayStarted();
@@ -51,6 +50,7 @@ class StatScraper: public BakkesMod::Plugin::BakkesModPlugin
 	void handleStatEvent(void*);
 	void updateMMRStats(UniqueIDWrapper);
 	void sendServerEvent(json);
+	void sendStatEvent(std::string, PriWrapper, StatEventWrapper);
 	int getPlayerCount(ArrayWrapper<PriWrapper> priList);
 	void sendAllPlayerPriStatsToServer(std::string, std::string);
 	void sendPriStats(std::string event_type, PriWrapper, std::string event_name);

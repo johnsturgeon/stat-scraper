@@ -33,10 +33,6 @@ void StatScraper::onLoad()
 	cvarManager->registerCvar("roster_sent", "0");
 	cvarManager->registerCvar("in_replay", "0");
 
-	gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.OnGameTimeUpdated",
-		[this](std::string eventname) {
-			gameTimeTick();
-		});
 	gameWrapper->HookEventPost("Function GameEvent_Soccar_TA.Active.StartRound",
 		[this](std::string eventname) {
 			startRound();
@@ -84,11 +80,7 @@ void StatScraper::onLoad()
 			handleTick();
 		}
 	);
-	//	notifierToken = gameWrapper->GetMMRWrapper().RegisterMMRNotifier(
-//		[this](UniqueIDWrapper id) {
-//			updateMMRStats(id);
-//		}
-//	);
+
 }
 
 
@@ -166,10 +158,6 @@ void StatScraper::handleTick() {
 	}
 }
 
-void StatScraper::gameTimeTick() {
-	//sendAllPlayerPriStatsToServer("updated_stats", "game_time_tick");
-}
-
 void StatScraper::sendAllPlayerPriStatsToServer(std::string event, std::string sender) {
 	// return if the roster is not set yet
 	ServerWrapper game = gameWrapper->GetOnlineGame();
@@ -237,20 +225,28 @@ void StatScraper::startRound() {
 	roster_sent.setValue("1");
 
 	sendAllPlayerPriStatsToServer("initial_roster", "start_round");
-	currentMatchGUID = game.GetMatchGUID();
-	json body;
-	body["event"] = "match_guid";
-	body["match_guid"] = currentMatchGUID;
-	sendServerEvent(body);
+	currentMatchGUID = game.GetMatchGUID();  
 
 }
 
 
+void StatScraper::sendStatEvent(std::string event_type, PriWrapper pri, StatEventWrapper stat_event) {
+	if (primaryPlayerID != pri.GetUniqueIdWrapper()) { return; }
+	json body;
+	body["event"] = "stat_event";
+	body["event_name"] = stat_event.GetEventName();
+	body["event_points"] = stat_event.GetPoints();
+	body["event_description"] = stat_event.GetDescription().ToString();
+	body["event_label"] = stat_event.GetLabel().ToString();
+	body["event_primary_stat"] = stat_event.GetbPrimaryStat();
+	sendServerEvent(body);
+}
+
 void StatScraper::sendPriStats(std::string event_type, PriWrapper pri, std::string event_name) {
+	//if (pri.GetPlayerID() != primaryPlayerID) { return; }
 	json body;
 	body["event"] = event_type;
 	body["event_name"] = event_name;
-	body["bakkes_player_id"] = pri.GetPlayerID();
 	sendServerEvent(body);
 }
 
@@ -300,7 +296,7 @@ void StatScraper::handleStatEvent(void* params) {
 	if (!playerController) { LOG("Null controller"); return; }
 	PriWrapper playerPRI = playerController.GetPRI();
 	sendLog("handleStatEvent is sending");
-	sendPriStats("stat_event", playerPRI, statEvent.GetEventName());
+	sendStatEvent("stat_event", playerPRI, statEvent);
 }
 
 void StatScraper::onStatTickerMessage(void* params) {
@@ -315,7 +311,7 @@ void StatScraper::onStatTickerMessage(void* params) {
 	PriWrapper victim = PriWrapper(pStruct->Victim);
 	StatEventWrapper statEvent = StatEventWrapper(pStruct->StatEvent);
 	if (!receiver) { LOG("Null reciever PRI"); return; }
-	this->sendPriStats("stat_ticker", receiver, statEvent.GetEventName());
+	this->sendStatEvent("stat_ticker", receiver, statEvent);
 }
 
 // ---------------------------  OnlineGame methods --------------------
