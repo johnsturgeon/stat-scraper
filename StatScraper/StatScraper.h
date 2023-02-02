@@ -8,11 +8,32 @@
 
 using json = nlohmann::json;
 
+enum GameState {GameEnded, GameStarted};
+
+class Player {
+	json getJSON();
+public:
+	std::string name;
+	int bakkes_player_id;
+	std::string platform_id_string;
+	int team_num;
+	int score;
+	int goals;
+	int saves;
+	int assists;
+	int shots;
+	int mmr;
+	bool is_primary_player;
+};
+
 
 class OnlineGame {
+
 public:
-	ServerWrapper game;
-	void gameKickoff();
+	void startGame();
+	void endGame();
+	std::vector<Player> roster;
+	GameState gameState;
 };
 
 
@@ -27,25 +48,27 @@ constexpr auto plugin_version = stringify(VERSION_MAJOR) "." stringify(VERSION_M
 std::unique_ptr<MMRNotifierToken> notifierToken;
 
 class StatScraper: public BakkesMod::Plugin::BakkesModPlugin
-	//,public SettingsWindowBase // Uncomment if you wanna render your own tab in the settings menu
-	//,public PluginWindowBase // Uncomment if you want to render your own plugin window
 {	
-
-	//std::shared_ptr<bool> enabled;
-
-	//Boilerplate
+	/*
+	Refactored and used methods
+	*/
 	void onLoad() override;
-	//void onUnload() override; // Uncomment and implement if you need a unload method
-
+	void sendServerJSON(json);
 	void sendLog(std::string);
+	bool shouldRun();
+	void handleTick();
+	std::vector<Player> getRoster();
+
+	/*
+	TODO Figure out what's used and not
+	*/
+
 	void onStatTickerMessage(void*);
 	void startRound();
 	void matchEnded();
 	void gameDestroyed();
 	void replayStarted();
 	void replayEnded();
-	bool shouldRun();
-	void handleTick();
 	int getTotalPoints();
 	void handleStatEvent(void*);
 	void updateMMRStats(UniqueIDWrapper);
@@ -61,8 +84,21 @@ public:
 	//void RenderWindow() override; // Uncomment if you want to render your own plugin window
 
 private:
+
+	/*
+	Refactored and Used variables
+	*/
+	OnlineGame onlineGame;
+	int previousTotalPlayerPoints;
+	int previousPlayerCount;
+
+	/*
+	TODO figure out
+	*/
 	std::string currentMatchGUID;
 	UniqueIDWrapper primaryPlayerID;
-	int previousTotalPlayerPoints;
-	int gameStarted;
+//	std::string serverURL = "http://goshdarnedserver:8822/bakkes";
+//	std::string messageURL = "http://goshdarnedserver:8822/message";
+	std::string serverURL = "http://imac:8822/bakkes";
+	std::string messageURL = "http://imac:8822/message";
 };

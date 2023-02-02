@@ -28,7 +28,6 @@ void StatScraper::onLoad()
 {
 	_globalCvarManager = cvarManager;
 	previousTotalPlayerPoints = 0;
-	LOG("JHS: Plugin loaded!");
 
 	cvarManager->registerCvar("roster_sent", "0");
 	cvarManager->registerCvar("in_replay", "0");
@@ -75,6 +74,10 @@ void StatScraper::onLoad()
 			sendLog(eventname);
 			sendAllPlayerPriStatsToServer("final_stats", eventname);
 		});
+
+	/*
+	Refactored and used hooks
+	*/
 	gameWrapper->RegisterDrawable(
 		[this](CanvasWrapper canvas) {
 			handleTick();
@@ -84,6 +87,85 @@ void StatScraper::onLoad()
 }
 
 
+/*
+Refactored and used methods below
+*/
+
+void StatScraper::sendServerJSON(json body) {
+	CurlRequest req;
+	req.url = messageURL;
+	req.body = body.dump();
+	HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {});
+}
+
+void StatScraper::sendLog(std::string log_message) {
+	json body;
+	body["event"] = "log_message";
+	body["message"] = log_message;
+	sendServerJSON(body);
+}
+
+bool StatScraper::shouldRun() {
+	// Check to see if server exists
+	ServerWrapper server = gameWrapper->GetOnlineGame();
+	if (!server) { return false; }
+	GameSettingPlaylistWrapper playlist = server.GetPlaylist();
+	if (playlist.memory_address == NULL) { return false; }
+	if (playlist.GetPlaylistId() != 11) { return false; }
+	return true;
+}
+
+
+std::vector<Player> StatScraper::getRoster() {
+	std::vector<Player> players;
+	ServerWrapper game = gameWrapper->GetOnlineGame();
+	if (!game) { return players; }
+	ArrayWrapper<PriWrapper> priList = game.GetPRIs();
+	int player_count = priList.Count();
+	for (int i = 0; i < player_count; i++) {
+		PriWrapper pri = priList.Get(i);
+		Player aPlayer = Player();
+		aPlayer.name = pri.GetPlayerName().ToString();
+		players.push_back(aPlayer);
+	}
+	return players;
+}
+
+void StatScraper::handleTick() {
+	if (shouldRun() == false) {
+		if (onlineGame.gameState == GameStarted) {
+			onlineGame.endGame();
+			sendLog("============ Game ENDED =============");
+		}
+		return;
+	}
+	int livePlayerCount = 0;
+	if (onlineGame.gameState != GameStarted) {
+		previousPlayerCount = 0;
+		onlineGame.startGame();
+		sendLog("******** Game Started **********");
+	}
+	std::vector<Player> roster = getRoster();
+	livePlayerCount = static_cast<int>(roster.size());
+
+	if (livePlayerCount != previousPlayerCount) {
+		previousPlayerCount = livePlayerCount;
+		for (Player p : roster) {
+			sendLog("Player " + p.name + " in game");
+			//json j = p; 
+			//sendServerJSON(j);
+		}
+	}
+	int liveTotalPoints = getTotalPoints();
+	if (liveTotalPoints != previousTotalPlayerPoints) {
+		previousTotalPlayerPoints = liveTotalPoints;
+		sendAllPlayerPriStatsToServer("updated_stats", "game_time_tick");
+	}
+}
+
+/*
+TODO below
+*/
 void StatScraper::updateMMRStats(UniqueIDWrapper id) {
 	if (!gameWrapper) { return; }
 	MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
@@ -112,27 +194,6 @@ int StatScraper::getPlayerCount(ArrayWrapper<PriWrapper> priList) {
 	return playerCount;
 }
 
-bool StatScraper::shouldRun() {
-	// Check to see if server exists
-	ServerWrapper server = gameWrapper->GetOnlineGame();
-	if (!server) {
-		if (gameStarted) {
-			LOG("No online game!");
-			gameStarted = false;
-		}
-		return false;
-	}
-	GameSettingPlaylistWrapper playlist = server.GetPlaylist();
-	if (playlist.memory_address == NULL) {
-		return false;
-	}
-	if (playlist.GetPlaylistId() != 11) {
-		return false;
-	}
-	return true;
-}
-
-
 int StatScraper::getTotalPoints() {
 	ServerWrapper game = gameWrapper->GetOnlineGame();
 	if (!game) { return 0; }
@@ -147,17 +208,6 @@ int StatScraper::getTotalPoints() {
 	return totalScore;
 }
 
-void StatScraper::handleTick() {
-	if (shouldRun() == false) {
-		return;
-	}
-	int liveTotalPoints = getTotalPoints();
-	if (liveTotalPoints != previousTotalPlayerPoints) {
-		previousTotalPlayerPoints = liveTotalPoints;
-		sendAllPlayerPriStatsToServer("updated_stats", "game_time_tick");
-	}
-}
-
 void StatScraper::sendAllPlayerPriStatsToServer(std::string event, std::string sender) {
 	// return if the roster is not set yet
 	ServerWrapper game = gameWrapper->GetOnlineGame();
@@ -168,7 +218,6 @@ void StatScraper::sendAllPlayerPriStatsToServer(std::string event, std::string s
 		PriWrapper pri = pc.GetPRI();
 		if (!pri) { return; }
 		primaryPlayerID = pri.GetUniqueIdWrapper();
-		gameStarted = true;
 	}
 	ArrayWrapper<PriWrapper> priList = game.GetPRIs();
 	int player_count = getPlayerCount(priList);
@@ -186,7 +235,7 @@ void StatScraper::sendAllPlayerPriStatsToServer(std::string event, std::string s
 		body["players"][i]["name"] = pri.GetPlayerName().ToString();
 		body["players"][i]["bakkes_player_id"] = pri.GetPlayerID();
 		body["players"][i]["platform_id_string"] = pri.GetUniqueIdWrapper().GetIdString();
-		body["players"][i]["team"] = pri.GetTeamNum();
+		body["players"][i]["team_num"] = pri.GetTeamNum();
 		body["players"][i]["score"] = pri.GetMatchScore();
 		body["players"][i]["goals"] = pri.GetMatchGoals();
 		body["players"][i]["saves"] = pri.GetMatchSaves();
@@ -272,22 +321,14 @@ void StatScraper::replayEnded() {
 
 void StatScraper::sendServerEvent(json body) {
 	CurlRequest req;
-	req.url = "http://goshdarnedserver:8822/bakkes";
+	req.url = serverURL;
 	req.body = body.dump();
-
 	HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result)
 		{
 			
 		});
-
 }
-
-void StatScraper::sendLog(std::string log_message) {
-	json body;
-	body["event"] = "log_message";
-	body["message"] = log_message;
-	sendServerEvent(body);
-}
+ 
 
 void StatScraper::handleStatEvent(void* params) {
 	StatEventParams* pStruct = (StatEventParams*)params;
@@ -317,21 +358,30 @@ void StatScraper::onStatTickerMessage(void* params) {
 // ---------------------------  OnlineGame methods --------------------
 
 
-void OnlineGame::gameKickoff() {
-	if (!game) { return; }
-	// get the player count (just testing rn)
-	ArrayWrapper<PriWrapper> priList = game.GetPRIs();
-	int playerCount = priList.Count();
-	CurlRequest req;
-	req.url = "http://goshdarnedserver:8822/bakkes";
-	json body;
-	body["event"] = "OnlineGame::gameKickoff";
-	body["player_count"] = playerCount;
-
-	req.body = body.dump();
-
-	HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {
-
-	});
-
+void OnlineGame::startGame() {
+	this->gameState = GameStarted;
 }
+
+void OnlineGame::endGame() {
+	gameState = GameEnded;
+	roster.clear();
+}
+
+
+// ---------------------------- Player methods -------------------------
+json Player::getJSON()
+{
+	return json{
+		{ "name", name },
+		{ "bakkes_player_id", bakkes_player_id },
+		{ "platform_string_id", platform_id_string },
+		{ "team_num", team_num },
+		{ "score", score },
+		{ "goals", goals },
+		{ "saves", saves },
+		{ "assists", assists },
+		{ "shots", shots },
+		{ "mmr", mmr },
+		{ "is_primary_player", is_primary_player }
+	};
+};
