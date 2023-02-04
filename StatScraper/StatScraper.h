@@ -11,8 +11,8 @@ using json = nlohmann::json;
 enum GameState {GameEnded, GameStarted};
 
 class Player {
-	json getJSON();
 public:
+	json getJSON();
 	std::string name;
 	int bakkes_player_id;
 	std::string platform_id_string;
@@ -32,6 +32,7 @@ class OnlineGame {
 public:
 	void startGame();
 	void endGame();
+	json getRosterJSON();
 	std::vector<Player> roster;
 	GameState gameState;
 };
@@ -57,7 +58,8 @@ class StatScraper: public BakkesMod::Plugin::BakkesModPlugin
 	void sendLog(std::string);
 	bool shouldRun();
 	void handleTick();
-	std::vector<Player> getRoster();
+	std::vector<Player> getLiveRoster();
+	void sendRosterToServer();
 
 	/*
 	TODO Figure out what's used and not

@@ -111,28 +111,59 @@ bool StatScraper::shouldRun() {
 	if (!server) { return false; }
 	GameSettingPlaylistWrapper playlist = server.GetPlaylist();
 	if (playlist.memory_address == NULL) { return false; }
+	// we only care about duos right now (playlist 11)
 	if (playlist.GetPlaylistId() != 11) { return false; }
 	return true;
 }
 
 
-std::vector<Player> StatScraper::getRoster() {
+void StatScraper::sendRosterToServer() {
+	json rosterJSON = onlineGame.getRosterJSON();
+	sendServerJSON(rosterJSON);
+}
+
+
+/// <summary>
+/// Queries the online game for the current roster of players
+/// </summary>
+/// <returns>Array of 'Player' objects</returns>
+std::vector<Player> StatScraper::getLiveRoster() {
 	std::vector<Player> players;
 	ServerWrapper game = gameWrapper->GetOnlineGame();
 	if (!game) { return players; }
 	ArrayWrapper<PriWrapper> priList = game.GetPRIs();
 	int player_count = priList.Count();
+	MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
+
 	for (int i = 0; i < player_count; i++) {
 		PriWrapper pri = priList.Get(i);
 		Player aPlayer = Player();
+		int isPrimaryPlayer = 0;
+		if (pri.GetUniqueIdWrapper() == primaryPlayerID) {
+			isPrimaryPlayer = 1;
+		}
 		aPlayer.name = pri.GetPlayerName().ToString();
+		aPlayer.bakkes_player_id = pri.GetPlayerID();
+		aPlayer.platform_id_string = pri.GetUniqueIdWrapper().GetIdString();
+		aPlayer.team_num = pri.GetTeamNum();
+		aPlayer.score = pri.GetMatchScore();
+		aPlayer.goals = pri.GetMatchGoals();
+		aPlayer.saves = pri.GetMatchSaves();
+		aPlayer.assists = pri.GetMatchAssists();
+		aPlayer.shots = pri.GetMatchShots();
+		aPlayer.mmr = mmrWrapper.GetPlayerMMR(pri.GetUniqueIdWrapper(), 11);
+		aPlayer.is_primary_player = isPrimaryPlayer;
 		players.push_back(aPlayer);
 	}
 	return players;
 }
 
 void StatScraper::handleTick() {
+	// First we determine if we're in an online game, or not, if not, just bail
+	//
 	if (shouldRun() == false) {
+		// before dropping out, we should check if we had a recent game
+		// if so, let's reset it
 		if (onlineGame.gameState == GameStarted) {
 			onlineGame.endGame();
 			sendLog("============ Game ENDED =============");
@@ -145,16 +176,16 @@ void StatScraper::handleTick() {
 		onlineGame.startGame();
 		sendLog("******** Game Started **********");
 	}
-	std::vector<Player> roster = getRoster();
+	std::vector<Player> roster = getLiveRoster();
 	livePlayerCount = static_cast<int>(roster.size());
 
 	if (livePlayerCount != previousPlayerCount) {
+		onlineGame.roster = roster;
 		previousPlayerCount = livePlayerCount;
 		for (Player p : roster) {
-			sendLog("Player " + p.name + " in game");
-			//json j = p; 
-			//sendServerJSON(j);
+			sendLog("Player " + p.name + " in a game");
 		}
+		sendRosterToServer();
 	}
 	int liveTotalPoints = getTotalPoints();
 	if (liveTotalPoints != previousTotalPlayerPoints) {
@@ -187,7 +218,6 @@ int StatScraper::getPlayerCount(ArrayWrapper<PriWrapper> priList) {
 	int playerCount = priList.Count();
 	if (playerCount > 0 && playerCount < 4) {
 		if (playerCount != previousPlayerCount) {
-			LOG("Player Count: {}", playerCount);
 			previousPlayerCount = playerCount;
 		}
 	}
@@ -259,13 +289,11 @@ void StatScraper::gameDestroyed() {
 }
 
 void StatScraper::startRound() {
-	LOG("Got Start Round");
 	ServerWrapper game = gameWrapper->GetOnlineGame();
 	if (!game) { return; }
 
 	ArrayWrapper<PriWrapper> priList = game.GetPRIs();
 	int player_count = getPlayerCount(priList);
-	LOG("Player Count: {}",player_count);
 	if (player_count < 4) { return; }
 
 	auto roster_sent = cvarManager->getCvar("roster_sent");
@@ -334,7 +362,7 @@ void StatScraper::handleStatEvent(void* params) {
 	StatEventParams* pStruct = (StatEventParams*)params;
 	StatEventWrapper statEvent = StatEventWrapper(pStruct->StatEvent);
 	PlayerControllerWrapper playerController = gameWrapper->GetPlayerController();
-	if (!playerController) { LOG("Null controller"); return; }
+	if (!playerController) { return; }
 	PriWrapper playerPRI = playerController.GetPRI();
 	sendLog("handleStatEvent is sending");
 	sendStatEvent("stat_event", playerPRI, statEvent);
@@ -351,7 +379,7 @@ void StatScraper::onStatTickerMessage(void* params) {
 	PriWrapper receiver = PriWrapper(pStruct->Receiver);
 	PriWrapper victim = PriWrapper(pStruct->Victim);
 	StatEventWrapper statEvent = StatEventWrapper(pStruct->StatEvent);
-	if (!receiver) { LOG("Null receiver PRI"); return; }
+	if (!receiver) { return; }
 	this->sendPriStats("stat_ticker", receiver, statEvent.GetEventName());
 }
 
@@ -367,11 +395,22 @@ void OnlineGame::endGame() {
 	roster.clear();
 }
 
+json OnlineGame::getRosterJSON() {
+	json body;
+	body["players"] = json::array();
+	int i = 0;
+	for (Player p : roster) {
+		body["players"].push_back(std::move(p.getJSON()));
+		LOG("JSON: roster body is {}", body.dump());
+		i++;
+	}
+	return body;
+}
 
 // ---------------------------- Player methods -------------------------
 json Player::getJSON()
 {
-	return json{
+	return {
 		{ "name", name },
 		{ "bakkes_player_id", bakkes_player_id },
 		{ "platform_string_id", platform_id_string },
