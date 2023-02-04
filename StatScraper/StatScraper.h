@@ -6,6 +6,8 @@
 #include "json.hpp"
 #include "version.h"
 
+#define FULL_ROSTER = 11;
+
 using json = nlohmann::json;
 
 enum GameState {GameEnded, GameStarted};
@@ -22,7 +24,7 @@ public:
 	int saves;
 	int assists;
 	int shots;
-	int mmr;
+	float mmr;
 	bool is_primary_player;
 };
 
@@ -59,7 +61,7 @@ class StatScraper: public BakkesMod::Plugin::BakkesModPlugin
 	bool shouldRun();
 	void handleTick();
 	std::vector<Player> getLiveRoster();
-	void sendRosterToServer();
+	void sendRosterToServer(std::string, std::string);
 
 	/*
 	TODO Figure out what's used and not

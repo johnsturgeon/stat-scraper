@@ -93,16 +93,19 @@ Refactored and used methods below
 
 void StatScraper::sendServerJSON(json body) {
 	CurlRequest req;
-	req.url = messageURL;
+	req.url = serverURL;
 	req.body = body.dump();
 	HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {});
 }
 
 void StatScraper::sendLog(std::string log_message) {
+	CurlRequest req;
 	json body;
 	body["event"] = "log_message";
 	body["message"] = log_message;
-	sendServerJSON(body);
+	req.url = messageURL;
+	req.body = body.dump();
+	HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {});
 }
 
 bool StatScraper::shouldRun() {
@@ -117,8 +120,10 @@ bool StatScraper::shouldRun() {
 }
 
 
-void StatScraper::sendRosterToServer() {
+void StatScraper::sendRosterToServer(std::string event, std::string sender) {
 	json rosterJSON = onlineGame.getRosterJSON();
+	rosterJSON["event"] = event;
+	rosterJSON["sender"] = sender;
 	sendServerJSON(rosterJSON);
 }
 
@@ -185,12 +190,12 @@ void StatScraper::handleTick() {
 		for (Player p : roster) {
 			sendLog("Player " + p.name + " in a game");
 		}
-		sendRosterToServer();
+		sendRosterToServer("roster_update", "handle_tick");
 	}
 	int liveTotalPoints = getTotalPoints();
 	if (liveTotalPoints != previousTotalPlayerPoints) {
 		previousTotalPlayerPoints = liveTotalPoints;
-		sendAllPlayerPriStatsToServer("updated_stats", "game_time_tick");
+		sendRosterToServer("updated_stats", "handle_tick");
 	}
 }
 
@@ -239,42 +244,42 @@ int StatScraper::getTotalPoints() {
 }
 
 void StatScraper::sendAllPlayerPriStatsToServer(std::string event, std::string sender) {
-	// return if the roster is not set yet
-	ServerWrapper game = gameWrapper->GetOnlineGame();
-	if (!game) { return; }
-	if (event == "initial_roster") {
-		PlayerControllerWrapper pc = gameWrapper->GetPlayerController();
-		if (!pc) { return; }
-		PriWrapper pri = pc.GetPRI();
-		if (!pri) { return; }
-		primaryPlayerID = pri.GetUniqueIdWrapper();
-	}
-	ArrayWrapper<PriWrapper> priList = game.GetPRIs();
-	int player_count = getPlayerCount(priList);
-	if (player_count < 4) { return; }
-	MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
-	json body;
-	body["event"] = event;
-	body["sender"] = sender;
-	for (int i = 0; i < player_count; i++) {
-		PriWrapper pri = priList.Get(i);
-		int isPrimaryPlayer = 0;
-		if (pri.GetUniqueIdWrapper() == primaryPlayerID) {
-			isPrimaryPlayer = 1;
-		}
-		body["players"][i]["name"] = pri.GetPlayerName().ToString();
-		body["players"][i]["bakkes_player_id"] = pri.GetPlayerID();
-		body["players"][i]["platform_id_string"] = pri.GetUniqueIdWrapper().GetIdString();
-		body["players"][i]["team_num"] = pri.GetTeamNum();
-		body["players"][i]["score"] = pri.GetMatchScore();
-		body["players"][i]["goals"] = pri.GetMatchGoals();
-		body["players"][i]["saves"] = pri.GetMatchSaves();
-		body["players"][i]["assists"] = pri.GetMatchAssists();
-		body["players"][i]["shots"] = pri.GetMatchShots();
-		body["players"][i]["mmr"] = mmrWrapper.GetPlayerMMR(pri.GetUniqueIdWrapper(), 11);
-		body["players"][i]["is_primary_player"] = isPrimaryPlayer;
-	}
-	sendServerEvent(body);
+	//// return if the roster is not set yet
+	//ServerWrapper game = gameWrapper->GetOnlineGame();
+	//if (!game) { return; }
+	//if (event == "initial_roster") {
+	//	PlayerControllerWrapper pc = gameWrapper->GetPlayerController();
+	//	if (!pc) { return; }
+	//	PriWrapper pri = pc.GetPRI();
+	//	if (!pri) { return; }
+	//	primaryPlayerID = pri.GetUniqueIdWrapper();
+	//}
+	//ArrayWrapper<PriWrapper> priList = game.GetPRIs();
+	//int player_count = getPlayerCount(priList);
+	//if (player_count < 4) { return; }
+	//MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
+	//json body;
+	//body["event"] = event;
+	//body["sender"] = sender;
+	//for (int i = 0; i < player_count; i++) {
+	//	PriWrapper pri = priList.Get(i);
+	//	int isPrimaryPlayer = 0;
+	//	if (pri.GetUniqueIdWrapper() == primaryPlayerID) {
+	//		isPrimaryPlayer = 1;
+	//	}
+	//	body["players"][i]["name"] = pri.GetPlayerName().ToString();
+	//	body["players"][i]["bakkes_player_id"] = pri.GetPlayerID();
+	//	body["players"][i]["platform_id_string"] = pri.GetUniqueIdWrapper().GetIdString();
+	//	body["players"][i]["team_num"] = pri.GetTeamNum();
+	//	body["players"][i]["score"] = pri.GetMatchScore();
+	//	body["players"][i]["goals"] = pri.GetMatchGoals();
+	//	body["players"][i]["saves"] = pri.GetMatchSaves();
+	//	body["players"][i]["assists"] = pri.GetMatchAssists();
+	//	body["players"][i]["shots"] = pri.GetMatchShots();
+	//	body["players"][i]["mmr"] = mmrWrapper.GetPlayerMMR(pri.GetUniqueIdWrapper(), 11);
+	//	body["players"][i]["is_primary_player"] = isPrimaryPlayer;
+	//}
+	//sendServerEvent(body);
 }
 
 void StatScraper::matchEnded() {
