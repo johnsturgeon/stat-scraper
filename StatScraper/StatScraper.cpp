@@ -92,10 +92,6 @@ Refactored and used methods below
 */
 
 void StatScraper::sendServerJSON(json body) {
-	CurlRequest req;
-	req.url = serverURL;
-	req.body = body.dump();
-	HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {});
 }
 
 void StatScraper::sendLog(std::string log_message) {
@@ -121,10 +117,11 @@ bool StatScraper::shouldRun() {
 
 
 void StatScraper::sendRosterToServer(std::string event, std::string sender) {
-	json rosterJSON = onlineGame.getRosterJSON();
-	rosterJSON["event"] = event;
-	rosterJSON["sender"] = sender;
-	sendServerJSON(rosterJSON);
+	json roster = onlineGame.roster;
+    CurlRequest req;
+    req.url = rosterURL;
+    req.body = roster.dump();
+    HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {});
 }
 
 
@@ -411,21 +408,3 @@ json OnlineGame::getRosterJSON() {
 	}
 	return body;
 }
-
-// ---------------------------- Player methods -------------------------
-json Player::getJSON()
-{
-	return {
-		{ "name", name },
-		{ "bakkes_player_id", bakkes_player_id },
-		{ "platform_string_id", platform_id_string },
-		{ "team_num", team_num },
-		{ "score", score },
-		{ "goals", goals },
-		{ "saves", saves },
-		{ "assists", assists },
-		{ "shots", shots },
-		{ "mmr", mmr },
-		{ "is_primary_player", is_primary_player }
-	};
-};

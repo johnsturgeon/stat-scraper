@@ -14,20 +14,22 @@ enum GameState {GameEnded, GameStarted};
 
 class Player {
 public:
-	json getJSON();
 	std::string name;
-	int bakkes_player_id;
+	int bakkes_player_id = 0;
 	std::string platform_id_string;
-	int team_num;
-	int score;
-	int goals;
-	int saves;
-	int assists;
-	int shots;
-	float mmr;
-	bool is_primary_player;
+	int team_num = 0;
+	int score = 0;
+	int goals = 0;
+	int saves = 0;
+	int assists = 0;
+	int shots = 0;
+	float mmr = 0.0;
+	bool is_primary_player = false;
 };
 
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+        Player, name, bakkes_player_id, platform_id_string, team_num,
+                score, goals, saves, assists, shots, mmr, is_primary_player)
 
 class OnlineGame {
 
@@ -101,8 +103,7 @@ private:
 	*/
 	std::string currentMatchGUID;
 	UniqueIDWrapper primaryPlayerID;
-//	std::string serverURL = "http://goshdarnedserver:8822/bakkes";
-//	std::string messageURL = "http://goshdarnedserver:8822/message";
-	std::string serverURL = "http://imac:8822/bakkes";
-	std::string messageURL = "http://imac:8822/message";
+    std::string baseURL = "http://imac:8822/";
+//  std::string baseURL = "http://goshdarnedserver:8822/"
+    std::string rosterURL = baseURL + "roster"
 };
