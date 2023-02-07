@@ -95,13 +95,13 @@ void StatScraper::sendServerJSON(json body) {
 }
 
 void StatScraper::sendLog(std::string log_message) {
-	CurlRequest req;
-	json body;
-	body["event"] = "log_message";
-	body["message"] = log_message;
-	req.url = messageURL;
-	req.body = body.dump();
-	HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {});
+	//CurlRequest req;
+	//json body;
+	//body["event"] = "log_message";
+	//body["message"] = log_message;
+	//req.url = messageURL;
+	//req.body = body.dump();
+	//HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {});
 }
 
 bool StatScraper::shouldRun() {
@@ -116,11 +116,15 @@ bool StatScraper::shouldRun() {
 }
 
 
-void StatScraper::sendRosterToServer(std::string event, std::string sender) {
-	json roster = onlineGame.roster;
-    CurlRequest req;
+void StatScraper::sendRosterToServer() {
+	LOG("Sending roster to server");
+	json roster;
+	roster["players"] = onlineGame.roster;
+    CurlRequest req;             
     req.url = rosterURL;
     req.body = roster.dump();
+	req.verb = "GET";
+	LOG("Roster json dump is: {}", roster.dump());
     HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {});
 }
 
@@ -187,12 +191,12 @@ void StatScraper::handleTick() {
 		for (Player p : roster) {
 			sendLog("Player " + p.name + " in a game");
 		}
-		sendRosterToServer("roster_update", "handle_tick");
+		sendRosterToServer();
 	}
 	int liveTotalPoints = getTotalPoints();
 	if (liveTotalPoints != previousTotalPlayerPoints) {
 		previousTotalPlayerPoints = liveTotalPoints;
-		sendRosterToServer("updated_stats", "handle_tick");
+		sendRosterToServer();
 	}
 }
 
@@ -291,98 +295,98 @@ void StatScraper::gameDestroyed() {
 }
 
 void StatScraper::startRound() {
-	ServerWrapper game = gameWrapper->GetOnlineGame();
-	if (!game) { return; }
+	//ServerWrapper game = gameWrapper->GetOnlineGame();
+	//if (!game) { return; }
 
-	ArrayWrapper<PriWrapper> priList = game.GetPRIs();
-	int player_count = getPlayerCount(priList);
-	if (player_count < 4) { return; }
+	//ArrayWrapper<PriWrapper> priList = game.GetPRIs();
+	//int player_count = getPlayerCount(priList);
+	//if (player_count < 4) { return; }
 
-	auto roster_sent = cvarManager->getCvar("roster_sent");
-	if (roster_sent.getBoolValue()) { return; }
+	//auto roster_sent = cvarManager->getCvar("roster_sent");
+	//if (roster_sent.getBoolValue()) { return; }
 
-	roster_sent.setValue("1");
+	//roster_sent.setValue("1");
 
-	sendAllPlayerPriStatsToServer("initial_roster", "start_round");
-	currentMatchGUID = game.GetMatchGUID();  
+	//sendAllPlayerPriStatsToServer("initial_roster", "start_round");
+	//currentMatchGUID = game.GetMatchGUID();  
 
 }
 
 
 void StatScraper::sendStatEvent(std::string event_type, PriWrapper pri, StatEventWrapper stat_event) {
-	if (primaryPlayerID != pri.GetUniqueIdWrapper()) { return; }
-	json body;
-	body["event"] = "stat_event";
-	body["event_name"] = stat_event.GetEventName();
-	body["event_points"] = stat_event.GetPoints();
-	body["event_description"] = stat_event.GetDescription().ToString();
-	body["event_label"] = stat_event.GetLabel().ToString();
-	body["event_primary_stat"] = stat_event.GetbPrimaryStat();
-	sendServerEvent(body);
+	//if (primaryPlayerID != pri.GetUniqueIdWrapper()) { return; }
+	//json body;
+	//body["event"] = "stat_event";
+	//body["event_name"] = stat_event.GetEventName();
+	//body["event_points"] = stat_event.GetPoints();
+	//body["event_description"] = stat_event.GetDescription().ToString();
+	//body["event_label"] = stat_event.GetLabel().ToString();
+	//body["event_primary_stat"] = stat_event.GetbPrimaryStat();
+	//sendServerEvent(body);
 }
 
 void StatScraper::sendPriStats(std::string event_type, PriWrapper pri, std::string event_name) {
-	//if (pri.GetPlayerID() != primaryPlayerID) { return; }
-	json body;
-	body["event"] = event_type;
-	body["event_name"] = event_name;
-	sendServerEvent(body);
+	////if (pri.GetPlayerID() != primaryPlayerID) { return; }
+	//json body;
+	//body["event"] = event_type;
+	//body["event_name"] = event_name;
+	//sendServerEvent(body);
 }
 
 void StatScraper::replayStarted() {
-	auto in_replay = cvarManager->getCvar("in_replay");
-	in_replay.setValue("1");
-	json body;
-	body["event"] = "replay_started";
-	sendServerEvent(body);
-	gameWrapper->SetTimeout([this](GameWrapper* gw)
-		{
-			sendAllPlayerPriStatsToServer("updated_stats", "delayed_during_replay");
-		}, 0.75f);
+	//auto in_replay = cvarManager->getCvar("in_replay");
+	//in_replay.setValue("1");
+	//json body;
+	//body["event"] = "replay_started";
+	//sendServerEvent(body);
+	//gameWrapper->SetTimeout([this](GameWrapper* gw)
+	//	{
+	//		sendAllPlayerPriStatsToServer("updated_stats", "delayed_during_replay");
+	//	}, 0.75f);
 }
 
 void StatScraper::replayEnded() {
-	auto in_replay = cvarManager->getCvar("in_replay");
-	in_replay.setValue("0");
-	json body;
-	body["event"] = "replay_ended";
-	sendServerEvent(body);
+	//auto in_replay = cvarManager->getCvar("in_replay");
+	//in_replay.setValue("0");
+	//json body;
+	//body["event"] = "replay_ended";
+	//sendServerEvent(body);
 }
 
 void StatScraper::sendServerEvent(json body) {
-	CurlRequest req;
-	req.url = serverURL;
-	req.body = body.dump();
-	HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result)
-		{
-			
-		});
+	//CurlRequest req;
+	//req.url = serverURL;
+	//req.body = body.dump();
+	//HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result)
+	//	{
+	//		
+	//	});
 }
  
 
 void StatScraper::handleStatEvent(void* params) {
-	StatEventParams* pStruct = (StatEventParams*)params;
-	StatEventWrapper statEvent = StatEventWrapper(pStruct->StatEvent);
-	PlayerControllerWrapper playerController = gameWrapper->GetPlayerController();
-	if (!playerController) { return; }
-	PriWrapper playerPRI = playerController.GetPRI();
-	sendLog("handleStatEvent is sending");
-	sendStatEvent("stat_event", playerPRI, statEvent);
+	//StatEventParams* pStruct = (StatEventParams*)params;
+	//StatEventWrapper statEvent = StatEventWrapper(pStruct->StatEvent);
+	//PlayerControllerWrapper playerController = gameWrapper->GetPlayerController();
+	//if (!playerController) { return; }
+	//PriWrapper playerPRI = playerController.GetPRI();
+	//sendLog("handleStatEvent is sending");
+	//sendStatEvent("stat_event", playerPRI, statEvent);
 }
 
 void StatScraper::onStatTickerMessage(void* params) {
-	struct StatTickerParams {
-		uintptr_t Receiver;
-		uintptr_t Victim;
-		uintptr_t StatEvent;
-	};
+	//struct StatTickerParams {
+	//	uintptr_t Receiver;
+	//	uintptr_t Victim;
+	//	uintptr_t StatEvent;
+	//};
 
-	StatTickerParams* pStruct = (StatTickerParams*)params;
-	PriWrapper receiver = PriWrapper(pStruct->Receiver);
-	PriWrapper victim = PriWrapper(pStruct->Victim);
-	StatEventWrapper statEvent = StatEventWrapper(pStruct->StatEvent);
-	if (!receiver) { return; }
-	this->sendPriStats("stat_ticker", receiver, statEvent.GetEventName());
+	//StatTickerParams* pStruct = (StatTickerParams*)params;
+	//PriWrapper receiver = PriWrapper(pStruct->Receiver);
+	//PriWrapper victim = PriWrapper(pStruct->Victim);
+	//StatEventWrapper statEvent = StatEventWrapper(pStruct->StatEvent);
+	//if (!receiver) { return; }
+	//this->sendPriStats("stat_ticker", receiver, statEvent.GetEventName());
 }
 
 // ---------------------------  OnlineGame methods --------------------
@@ -395,16 +399,4 @@ void OnlineGame::startGame() {
 void OnlineGame::endGame() {
 	gameState = GameEnded;
 	roster.clear();
-}
-
-json OnlineGame::getRosterJSON() {
-	json body;
-	body["players"] = json::array();
-	int i = 0;
-	for (Player p : roster) {
-		body["players"].push_back(std::move(p.getJSON()));
-		LOG("JSON: roster body is {}", body.dump());
-		i++;
-	}
-	return body;
 }

@@ -28,18 +28,20 @@ public:
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
-        Player, name, bakkes_player_id, platform_id_string, team_num,
-                score, goals, saves, assists, shots, mmr, is_primary_player)
+	Player, name, bakkes_player_id, platform_id_string, team_num,
+	score, goals, saves, assists, shots, mmr, is_primary_player)
 
 class OnlineGame {
 
 public:
 	void startGame();
 	void endGame();
-	json getRosterJSON();
+	std::string match_id;
 	std::vector<Player> roster;
 	GameState gameState;
 };
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(OnlineGame, roster)
 
 
 struct StatEventParams {
@@ -63,7 +65,7 @@ class StatScraper: public BakkesMod::Plugin::BakkesModPlugin
 	bool shouldRun();
 	void handleTick();
 	std::vector<Player> getLiveRoster();
-	void sendRosterToServer(std::string, std::string);
+	void sendRosterToServer();
 
 	/*
 	TODO Figure out what's used and not
@@ -105,5 +107,5 @@ private:
 	UniqueIDWrapper primaryPlayerID;
     std::string baseURL = "http://imac:8822/";
 //  std::string baseURL = "http://goshdarnedserver:8822/"
-    std::string rosterURL = baseURL + "roster"
+	std::string rosterURL = baseURL + "roster";
 };
