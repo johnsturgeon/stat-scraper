@@ -25,7 +25,8 @@ struct StatTickerParams {
 
 int getUnixTimestamp() {
     const auto t1 = std::chrono::system_clock::now();
-    return std::chrono::duration_cast<std::chrono::seconds>(t1.time_since_epoch()).count();
+	auto seconds = std::chrono::duration_cast<std::chrono::seconds>(t1.time_since_epoch()).count();
+	return static_cast<int>(seconds);
 }
 
 void StatScraper::onLoad()
