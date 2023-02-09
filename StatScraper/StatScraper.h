@@ -7,11 +7,15 @@
 #include "json.hpp"
 #include "version.h"
 
-#define FULL_ROSTER = 11;
+const int DUALS_PLAYLIST_ID = 11;
 
 using json = nlohmann::json;
 
-enum GameState {GameEnded, GameStarted};
+enum GameState {
+	NO_GAME = 0,
+	GAME_IN_PROCESS = 1,
+	GAME_ENDED = 2
+};
 
 class Player {
 public:
@@ -33,16 +37,28 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
 	score, goals, saves, assists, shots, mmr, is_primary_player)
 
 class OnlineGame {
+private:
+	float getPlayerMMR(std::shared_ptr<GameWrapper>);
+	int getRosterTotalScore();
 
 public:
-	void startGame();
-	void endGame();
+	void startGame(std::shared_ptr<GameWrapper>);
+	void endGame(std::shared_ptr<GameWrapper>);
+	bool shouldUpdateRoster(std::shared_ptr<GameWrapper> gameWrapper);
+	void resetGame();
 	std::string match_id;
+	int start_timestamp = 0;
+	int end_timestamp = 0;
 	std::vector<Player> roster;
-	GameState gameState;
+	float primary_player_starting_mmr = 0.0;
+	float primary_player_ending_mmr = 0.0;
+	int primary_bakkes_player_id = 0;
+	GameState game_state = NO_GAME;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(OnlineGame, roster)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+	OnlineGame, match_id, start_timestamp, end_timestamp, roster, primary_player_starting_mmr,
+	primary_player_ending_mmr, primary_bakkes_player_id, game_state)
 
 
 struct StatEventParams {
@@ -61,31 +77,19 @@ class StatScraper: public BakkesMod::Plugin::BakkesModPlugin
 	Refactored and used methods
 	*/
 	void onLoad() override;
-	void sendServerJSON(json);
 	void sendLog(std::string);
 	bool shouldRun();
 	void handleTick();
 	std::vector<Player> getLiveRoster();
-	void sendRosterToServer();
+	void sendOnlineGameToServer();
 
 	/*
 	TODO Figure out what's used and not
 	*/
 
 	void onStatTickerMessage(void*);
-	void startRound();
-	void matchEnded();
-	void gameDestroyed();
-	void replayStarted();
-	void replayEnded();
-	int getTotalPoints();
 	void handleStatEvent(void*);
-	void updateMMRStats(UniqueIDWrapper);
-	void sendServerEvent(json);
 	void sendStatEvent(std::string, PriWrapper, StatEventWrapper);
-	int getPlayerCount(ArrayWrapper<PriWrapper> priList);
-	void sendAllPlayerPriStatsToServer(std::string, std::string);
-	void sendPriStats(std::string event_type, PriWrapper, std::string event_name);
 
 
 public:
@@ -106,7 +110,7 @@ private:
 	*/
 	std::string currentMatchGUID;
 	UniqueIDWrapper primaryPlayerID;
-    std::string baseURL = "http://imac:8822/";
-//  std::string baseURL = "http://goshdarnedserver:8822/"
-	std::string rosterURL = baseURL + "roster";
+    std::string baseUrl = "http://imac:8822/";
+//  std::string baseUrl = "http://goshdarnedserver:8822/"
+	std::string onlineGameUrl = baseUrl + "online_game";
 };
