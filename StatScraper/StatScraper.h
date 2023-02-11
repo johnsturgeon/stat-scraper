@@ -45,6 +45,7 @@ public:
 	void startGame(std::shared_ptr<GameWrapper>);
 	void endGame(std::shared_ptr<GameWrapper>);
 	bool shouldUpdateRoster(std::shared_ptr<GameWrapper> gameWrapper);
+	void updateRoster(std::vector<Player> roster);
 	void resetGame();
 	std::string match_id;
 	int start_timestamp = 0;

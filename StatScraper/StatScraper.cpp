@@ -31,6 +31,13 @@ int getUnixTimestamp() {
 	return static_cast<int>(seconds);
 }
 
+bool floatsAlmostEqual(float a, float b) {
+	if (abs(a - b) < 0.01f) {
+		return true;
+	}
+	return false;
+}
+
 // Overridden from Bakkes
 void StatScraper::onLoad()
 {
@@ -72,14 +79,10 @@ void StatScraper::handleTick() {
 	//
 	if (shouldRun() == false) {
 		if (onlineGame.game_state == GAME_IN_PROCESS) {
-			LOG("Got and END GAME");
 			onlineGame.endGame(gameWrapper);
-			LOG("Sending game to server");
 			sendOnlineGameToServer();
-			LOG("Sent game to server");
 			previousTotalPlayerPoints = 0;
 			onlineGame.resetGame();
-			LOG("reset game");
 		}
 		return;
 	}
@@ -111,7 +114,6 @@ bool StatScraper::shouldRun() {
 
 
 void StatScraper::sendOnlineGameToServer() {
-	LOG("Sending roster to server");
 	json jsonOnlineGame = onlineGame;
     CurlRequest req;             
     req.url = onlineGameUrl;
@@ -126,13 +128,16 @@ std::vector<Player> StatScraper::getLiveRoster() {
 	ArrayWrapper<PriWrapper> priList = game.GetPRIs();
 	int player_count = priList.Count();
 	MMRWrapper mmrWrapper = gameWrapper->GetMMRWrapper();
+	PlayerControllerWrapper pc = gameWrapper->GetPlayerController();
+	PriWrapper primaryPRI = pc.GetPRI();
+	int primaryPlayerID = primaryPRI.GetPlayerID();
 
 	for (int i = 0; i < player_count; i++) {
 		PriWrapper pri = priList.Get(i);
 		Player aPlayer = Player();
-		int isPrimaryPlayer = 0;
-		if (pri.GetUniqueIdWrapper() == primaryPlayerID) {
-			isPrimaryPlayer = 1;
+		bool isPrimaryPlayer = false;
+		if (pri.GetPlayerID() == primaryPlayerID) {
+			isPrimaryPlayer = true;
 		}
 		aPlayer.name = pri.GetPlayerName().ToString();
 		aPlayer.bakkes_player_id = pri.GetPlayerID();
@@ -206,6 +211,7 @@ void OnlineGame::startGame(std::shared_ptr<GameWrapper> gameWrapper) {
 	match_id = game.GetMatchGUID();
 	start_timestamp = getUnixTimestamp();
 	primary_player_starting_mmr = getPlayerMMR(gameWrapper);
+	primary_player_ending_mmr = primary_player_starting_mmr;
 	PlayerControllerWrapper pc = gameWrapper->GetPlayerController();
 	PriWrapper pri = pc.GetPRI();
 	primary_bakkes_player_id = pri.GetPlayerID();
@@ -213,7 +219,11 @@ void OnlineGame::startGame(std::shared_ptr<GameWrapper> gameWrapper) {
 
 void OnlineGame::endGame(std::shared_ptr<GameWrapper> gameWrapper) {
 	end_timestamp = getUnixTimestamp();
-//	primary_player_ending_mmr = getPlayerMMR(gameWrapper);
+	for (Player p : roster) {
+		if (p.is_primary_player) {
+			primary_player_ending_mmr = p.mmr;
+		}
+	}
 	game_state = GAME_ENDED;
 }
 
@@ -231,13 +241,20 @@ bool OnlineGame::shouldUpdateRoster(std::shared_ptr<GameWrapper> gameWrapper) {
 	ArrayWrapper<PriWrapper> priList = game.GetPRIs();
 	int liveTotalScore = 0;
 	int livePlayerCount = priList.Count();
+	float livePrimaryPlayerMMR = getPlayerMMR(gameWrapper);
 	for (int i = 0; i < priList.Count(); i++) {
 		PriWrapper pri = priList.Get(i);
 		liveTotalScore += pri.GetMatchScore();
 	}
-	if (liveTotalScore != getRosterTotalScore() or livePlayerCount != roster.size()) {
+	if (liveTotalScore != getRosterTotalScore() or
+		livePlayerCount != roster.size()) {
 		return true;
 	}
+	if (!floatsAlmostEqual(livePrimaryPlayerMMR, primary_player_ending_mmr)) {
+		primary_player_ending_mmr = livePrimaryPlayerMMR;
+		return true;
+	}
+	return false;
 }
 
 void OnlineGame::resetGame() {
@@ -258,4 +275,9 @@ float OnlineGame::getPlayerMMR(std::shared_ptr<GameWrapper> gameWrapper) {
 	if (!pc) { return 0.0; }
 	if (!pri) { return 0.0; }
 	return mmrWrapper.GetPlayerMMR(pri.GetUniqueIdWrapper(), DUALS_PLAYLIST_ID);
+}
+
+
+void OnlineGame::updateRoster(std::vector<Player> roster) {
+
 }
