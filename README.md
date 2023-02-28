@@ -32,6 +32,9 @@ The Stat Web Server has two functions:
 
 ### Installation
 
-The web server
-Requirements: docker compose
-1. see [docker-compose.yaml](web_docker/docker-compose.yaml) file for an example 
+* Requirements: Docker / Docker Compose
+* BakkesMod
+
+1. Install the Stats Scraper Plugin from the BakkesMod plugin site (TODO: Link here)
+2. Install Docker
+   * Use example docker compose file in this repo (TODO: Link here)
