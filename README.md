@@ -37,4 +37,12 @@ The Stat Web Server has two functions:
 
 1. Install the Stats Scraper Plugin from the BakkesMod plugin site (TODO: Link here)
 2. Install Docker
-   * Use example docker compose file in this repo (TODO: Link here)
+3. Create external volume to store database named `rocket-league-db`
+4. Run docker compose -- * Use example docker compose file in this repo (TODO: Link here)
+5. Verify your web server is running by going to http://localhost:8822/  You should see the home 
+   page.
+6. Play a game of 'Ranked Duos' to verify that the scoreboard is updating in real time
+
+## NOTES
+* Right now, the only playlist that is supported is Ranked Duos, I'm working on more game modes
+* Submit an issue to make a request for a feature here (TODO: Link to issues)
