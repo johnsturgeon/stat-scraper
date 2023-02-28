@@ -42,7 +42,7 @@ bool floatsAlmostEqual(float a, float b) {
 void StatScraper::onLoad()
 {
 	_globalCvarManager = cvarManager;
-	previousTotalPlayerPoints = 0;
+	_globalCvarManager->registerCvar("base_url", defaultBaseUrl, "Override the default server URL");
 
 	gameWrapper->HookEventWithCallerPost<ServerWrapper>("Function TAGame.GFxHUD_TA.HandleStatTickerMessage",
 		[this](ServerWrapper caller, void* params, std::string eventname) {
@@ -69,7 +69,16 @@ void StatScraper::onLoad()
 
 }
 
-
+// Overridden from Bakkes
+void StatScraper::RenderSettings() {
+	ImGui::TextUnformatted("A really cool plugin");
+	CVarWrapper baseURLCvar = cvarManager->getCvar("base_url");
+	if (!baseURLCvar) { return; }
+	std::string baseURL = baseURLCvar.getStringValue();
+	if (ImGui::InputText("Override the default URL", &baseURL)) {
+		baseURLCvar.setValue(baseURL);
+	}
+}
 /*
 Refactored and used methods below
 */
@@ -118,8 +127,8 @@ int StatScraper::getCurrentPlaylistInt(ServerWrapper server) {
 void StatScraper::sendOnlineGameToServer() {
 	json jsonOnlineGame = onlineGame;
     CurlRequest req;             
-    req.url = onlineGameUrl;
-    req.body = jsonOnlineGame.dump();
+    req.url = onlineGameUrl();
+	LOG("URL: {}", req.url);
 	LOG("Sending JSON {}", req.body);
     HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {});
 }
@@ -136,6 +145,13 @@ bool StatScraper::playlistIsValid(int idToCheck) {
 	return false;
 }
 
+std::string StatScraper::onlineGameUrl() {
+	CVarWrapper baseURLCvarOverride = cvarManager->getCvar("base_url");
+	if (baseURLCvarOverride) {
+		return baseURLCvarOverride.getStringValue() + "online_game";
+	}
+	return defaultBaseUrl + "online_game";
+}
 
 // TODO: Verify methods below and refactor to use JSON messages
 void StatScraper::sendLog(std::string log_message) {

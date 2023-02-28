@@ -6,6 +6,7 @@
 #include "bakkesmod/plugin/PluginSettingsWindow.h"
 #include "json.hpp"
 #include "version.h"
+#include "GuiBase.h"
 
 using json = nlohmann::json;
 
@@ -109,12 +110,14 @@ struct StatEventParams {
 constexpr auto plugin_version = stringify(VERSION_MAJOR) "." stringify(VERSION_MINOR) "." stringify(VERSION_PATCH) "." stringify(VERSION_BUILD);
 std::unique_ptr<MMRNotifierToken> notifierToken;
 
-class StatScraper: public BakkesMod::Plugin::BakkesModPlugin
+class StatScraper: public BakkesMod::Plugin::BakkesModPlugin, public SettingsWindowBase
 {	
 	/*
 	Refactored and used methods
 	*/
 	void onLoad() override;
+	void RenderSettings() override;
+
 	void sendLog(std::string);
 	bool shouldRun();
 	void handleTick();
@@ -142,13 +145,12 @@ private:
 	OnlineGame onlineGame;
 	int previousTotalPlayerPoints;
 	int previousPlayerCount;
+	std::string onlineGameUrl();
 
 	/*
 	TODO figure out
 	*/
 	std::string currentMatchGUID;
 	UniqueIDWrapper primaryPlayerID;
-    std::string baseUrl = "http://imac:8822/";
-//  std::string baseUrl = "http://goshdarnedserver:8822/"
-	std::string onlineGameUrl = baseUrl + "online_game";
+    std::string defaultBaseUrl = "http://localhost:8822/";
 };
