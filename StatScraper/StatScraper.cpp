@@ -128,9 +128,11 @@ void StatScraper::sendOnlineGameToServer() {
 	json jsonOnlineGame = onlineGame;
     CurlRequest req;             
     req.url = onlineGameUrl();
-	LOG("URL: {}", req.url);
-	LOG("Sending JSON {}", req.body);
-    HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {});
+	req.verb = "POST";
+	req.body = jsonOnlineGame.dump();
+    HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {
+		LOG("Result: {}", result);
+		});
 }
 bool StatScraper::playlistIsValid(int idToCheck) {
 	std::vector<PlaylistIds> validPlaylists;
@@ -141,7 +143,7 @@ bool StatScraper::playlistIsValid(int idToCheck) {
 		if (idInt == idToCheck) {
 			return true;
 		}
-	}
+	} 
 	return false;
 }
 
