@@ -155,16 +155,6 @@ std::string StatScraper::onlineGameUrl() {
 	return defaultBaseUrl + "online_game";
 }
 
-// TODO: Verify methods below and refactor to use JSON messages
-void StatScraper::sendLog(std::string log_message) {
-	//CurlRequest req;
-	//json body;
-	//body["event"] = "log_message";
-	//body["message"] = log_message;
-	//req.url = messageURL;
-	//req.body = body.dump();
-	//HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {});
-}
 void StatScraper::sendStatEvent(std::string event_type, PriWrapper pri, StatEventWrapper stat_event) {
 	//if (primaryPlayerID != pri.GetUniqueIdWrapper()) { return; }
 	//json body;
