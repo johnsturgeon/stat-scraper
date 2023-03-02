@@ -3,7 +3,7 @@
 
 using json = nlohmann::json;
 
-BAKKESMOD_PLUGIN(StatScraper, "write a plugin description here", plugin_version, PLUGINTYPE_FREEPLAY)
+BAKKESMOD_PLUGIN(StatScraper, "Stat Tracker", plugin_version, PLUGINTYPE_FREEPLAY)
 
 std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 
