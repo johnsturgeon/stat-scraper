@@ -2,47 +2,14 @@
 
 Run your own 'tracker' for Rocket League!  Track all your stats and display them on your own web site.
 
-This project contains two separate components:
-1. A plugin for [BakkesMod](https://github.com/bakkesmodorg) using the BakkesModSDK
-2. A Web Server - A docker container that runs a web server and mongo database that the plugin 
-   talks to
+If you're a user looking for documentation check out [The Wiki](../../wiki/)!
 
-## BakkesMod Plugin "Stat Scraper"
+# Rocket League BakkesMod Stat Scraper Plugin
 
-### Description
-This plugin will capture game data for 2v2 (more to come later) and 
-send the data to your own database for long term tracking
+## Overview
 
-### Installation
-TODO: write installation instructions for the plugin
+This is the repository for the Stat Scraper plugin (GoshDarnedHero).  Right now, it's a solo 
+project, but eventually contributions will be welcome.
 
-## Docker Web Server and Stats Database
-There are a few components to the web server that are all in the docker container
-
-* TODO: Link to Docker Hub image (base docker image)
-* MongoDB for storing game data (installed via `docker-compose.yaml`)
-* Poetry for python virtual environment
-
-### Description
-
-The Stat Web Server has two functions:
-
-* Provide a REST api for the Plugin to send data
-* Provide a Web Frontend for viewing in-game information and stats
-
-### Installation
-
-* Requirements: Docker / Docker Compose
-* BakkesMod
-
-1. Install the Stats Scraper Plugin from the BakkesMod plugin site (TODO: Link here)
-2. Install Docker
-3. Create external volume to store database named `rocket-league-db`
-4. Run docker compose -- * Use example docker compose file in this repo (TODO: Link here)
-5. Verify your web server is running by going to http://localhost:8822/  You should see the home 
-   page.
-6. Play a game of 'Ranked Duos' to verify that the scoreboard is updating in real time
-
-## NOTES
-* Right now, the only playlist that is supported is Ranked Duos, I'm working on more game modes
-* Submit an issue to make a request for a feature here (TODO: Link to issues)
+### Getting started with development:
+I followed all instructions for the [BakkesMod SDK](https://github.com/bakkesmodorg/BakkesModSDK)
