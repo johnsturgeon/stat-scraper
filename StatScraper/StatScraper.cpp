@@ -5,6 +5,26 @@ using json = nlohmann::json;
 
 BAKKESMOD_PLUGIN(StatScraper, "Stat Tracker", plugin_version, PLUGINTYPE_FREEPLAY)
 
+struct FString {
+	unsigned char struct_size[0x10];
+};
+
+struct FUniqueNetId
+{
+	unsigned char struct_size[0x48];
+};
+
+
+struct FChatMessage2 {
+	class APlayerReplicationInfo* PRI; // 0x0000 (0x0008) [0x0000000000000000]               
+	class ATeam_TA* Team; // 0x0008 (0x0008) [0x0000000000000000]               
+	struct FString PlayerName; // 0x0010 (0x0010) [0x0000000000400000] (CPF_NeedCtorLink)
+	struct FString Message; // 0x0020 (0x0010) [0x0000000000400000] (CPF_NeedCtorLink)
+	uint8_t ChatChannel; // 0x0030 (0x0001) [0x0000000000000000]               
+	uint8_t UnknownData00[0x3]; // 0x0031 (0x0003) MISSED OFFSET
+	unsigned long bPreset : 1; // 0x0034 (0x0004) [0x0000000000000000] [0x00000001] 
+	struct FUniqueNetId Recipient; // 0x0038 (0x0048) [0x0000000000400000] (CPF_NeedCtorLink)
+};
 std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 
 struct DummyStatEventContainer
@@ -58,6 +78,10 @@ void StatScraper::onLoad()
 			onStatTickerMessage(params);
 		});
 
+	gameWrapper->HookEventWithCaller < ActorWrapper >("Function TAGame.HUDBase_TA.OnChatMessage",
+		[this](ActorWrapper caller, void* params, ...) {
+			handleChatMessage(params);
+		});
 	/*
 	Refactored and used hooks
 	*/
@@ -109,6 +133,26 @@ void StatScraper::handleTick() {
 	}
 }
 
+void StatScraper::handleChatMessage(void* params) {
+	FChatMessage2* paramStruct = (FChatMessage2*)params;
+	std::string player_name = UnrealStringWrapper(reinterpret_cast<std::uintptr_t>(&paramStruct->PlayerName)).ToString();
+	std::string chat_message = UnrealStringWrapper(reinterpret_cast<std::uintptr_t>(&paramStruct->Message)).ToString();
+	LOG("{}: {}: ChatChannel: {}", player_name, chat_message, paramStruct->ChatChannel);
+	ChatMessage msg;
+	msg.timestamp = getUnixTimestamp();
+	msg.channel = static_cast<int>(paramStruct->ChatChannel);
+	msg.match_id = onlineGame.match_id;
+	msg.message = chat_message;
+	msg.player_name = player_name;
+	json jsonChatMessage = msg;
+	CurlRequest req;
+	req.url = chatMessageUrl();
+	req.verb = "POST";
+	req.body = jsonChatMessage.dump();
+	HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {
+		});
+}
+
 bool StatScraper::shouldRun() {
 	// Check to see if server exists
 	ServerWrapper server = gameWrapper->GetOnlineGame();
@@ -131,7 +175,6 @@ void StatScraper::sendOnlineGameToServer() {
 	req.verb = "POST";
 	req.body = jsonOnlineGame.dump();
     HttpWrapper::SendCurlJsonRequest(req, [this](int code, std::string result) {
-		LOG("Result: {}", result);
 		});
 }
 bool StatScraper::playlistIsValid(int idToCheck) {
@@ -155,6 +198,13 @@ std::string StatScraper::onlineGameUrl() {
 	return defaultBaseUrl + "online_game";
 }
 
+std::string StatScraper::chatMessageUrl() {
+	CVarWrapper baseURLCvarOverride = cvarManager->getCvar("base_url");
+	if (baseURLCvarOverride) {
+		return baseURLCvarOverride.getStringValue() + "online_game";
+	}
+	return defaultBaseUrl + "chat_message";
+}
 void StatScraper::sendStatEvent(std::string event_type, PriWrapper pri, StatEventWrapper stat_event) {
 	//if (primaryPlayerID != pri.GetUniqueIdWrapper()) { return; }
 	//json body;

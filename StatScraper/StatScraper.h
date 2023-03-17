@@ -78,11 +78,9 @@ public:
 	float primary_player_starting_mmr = 0.0;
 	int primary_bakkes_player_id = 0;
 	GameState game_state = NO_GAME;
-
 	int end_timestamp() const;
 	float primary_player_ending_mmr() const;
 	std::vector<Player> roster() const;
-
 };
 
 void to_json(json& j, const OnlineGame& g) {
@@ -97,6 +95,24 @@ void to_json(json& j, const OnlineGame& g) {
 		{"primary_bakkes_player_id", g.primary_bakkes_player_id},
 		{"game_state", g.game_state},
 		{"playlist_id", g.playlist_id}
+	};
+}
+
+struct ChatMessage {
+	std::string match_id;
+	int timestamp;
+	int channel;
+	std::string message;
+	std::string player_name;
+};
+
+void to_json(json& j, const ChatMessage& m) {
+	j = json{
+		{"match_id", m.match_id},
+		{"timestamp", m.timestamp},
+		{"channel", m.channel},
+		{"message", m.message},
+		{"player_name", m.player_name}
 	};
 }
 
@@ -129,6 +145,7 @@ class StatScraper: public BakkesMod::Plugin::BakkesModPlugin, public SettingsWin
 
 	void onStatTickerMessage(void*);
 	void handleStatEvent(void*);
+	void handleChatMessage(void*);
 	void sendStatEvent(std::string, PriWrapper, StatEventWrapper);
 
 
@@ -146,6 +163,7 @@ private:
 	int previousTotalPlayerPoints;
 	int previousPlayerCount;
 	std::string onlineGameUrl();
+	std::string chatMessageUrl();
 
 	/*
 	TODO figure out
