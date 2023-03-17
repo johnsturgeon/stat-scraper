@@ -201,7 +201,7 @@ std::string StatScraper::onlineGameUrl() {
 std::string StatScraper::chatMessageUrl() {
 	CVarWrapper baseURLCvarOverride = cvarManager->getCvar("base_url");
 	if (baseURLCvarOverride) {
-		return baseURLCvarOverride.getStringValue() + "online_game";
+		return baseURLCvarOverride.getStringValue() + "chat_message";
 	}
 	return defaultBaseUrl + "chat_message";
 }
