@@ -137,7 +137,6 @@ void StatScraper::handleChatMessage(void* params) {
 	FChatMessage2* paramStruct = (FChatMessage2*)params;
 	std::string player_name = UnrealStringWrapper(reinterpret_cast<std::uintptr_t>(&paramStruct->PlayerName)).ToString();
 	std::string chat_message = UnrealStringWrapper(reinterpret_cast<std::uintptr_t>(&paramStruct->Message)).ToString();
-	LOG("{}: {}: ChatChannel: {}", player_name, chat_message, paramStruct->ChatChannel);
 	ChatMessage msg;
 	msg.timestamp = getUnixTimestamp();
 	msg.channel = static_cast<int>(paramStruct->ChatChannel);

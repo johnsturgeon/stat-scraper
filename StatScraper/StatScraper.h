@@ -98,7 +98,8 @@ void to_json(json& j, const OnlineGame& g) {
 	};
 }
 
-struct ChatMessage {
+class ChatMessage {
+public:
 	std::string match_id;
 	int timestamp;
 	int channel;
