@@ -348,6 +348,11 @@ void OnlineGame::updateRoster(std::shared_ptr<GameWrapper> gameWrapper) {
 		PriWrapper pri = priList.Get(i);
 		Player aPlayer = Player();
 		bool isPrimaryPlayer = false;
+		SkillRank rank = mmrWrapper.GetPlayerRank(pri.GetUniqueIdWrapper(), static_cast<int>(PlaylistIds::RankedTeamDoubles));
+		if (rank.Division == 0) {
+			LOG("Player's rank is bogus");
+			continue;
+		}
 		std::string platform_id_string = pri.GetUniqueIdWrapper().GetIdString();
 		if (pri.GetPlayerID() == primaryPlayerID) {
 			isPrimaryPlayer = true;
@@ -362,7 +367,7 @@ void OnlineGame::updateRoster(std::shared_ptr<GameWrapper> gameWrapper) {
 		aPlayer.assists = pri.GetMatchAssists();
 		aPlayer.shots = pri.GetMatchShots();
 		aPlayer.mmr = mmrWrapper.GetPlayerMMR(pri.GetUniqueIdWrapper(), static_cast<int>(PlaylistIds::RankedTeamDoubles));
-		aPlayer.skill_rank = mmrWrapper.GetPlayerRank(pri.GetUniqueIdWrapper(), static_cast<int>(PlaylistIds::RankedTeamDoubles));
+		aPlayer.skill_rank = rank;
 		aPlayer.is_primary_player = isPrimaryPlayer;
 		aPlayer.is_in_game = true;
 		rosterMap[platform_id_string] = aPlayer;
